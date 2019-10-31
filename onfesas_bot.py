@@ -1,6 +1,7 @@
-from telegram.ext import CommandHandler, MessageHandler, Filters
 import logging
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler
+from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters
+from telegram import ReplyKeyboardMarkup, KeyboardButton
+from lenta_parser import news
 
 
 updater = Updater(token='1041164852:AAFrXEoznar1FRMxuELTtgHrY-Ltv6N_SBs', use_context=True)
@@ -8,68 +9,102 @@ dispatcher = updater.dispatcher
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                     level=logging.INFO)
+                    level=logging.INFO)
 
-f = 1
+
+ADD_CATEGORY, ADD_KEYWORD = range(2)
+
+
+dictionary = {'Science🎆': 'Наука и техника', 'Economy💰': 'Экономика','Internet📲': 'Интернет и СМИ',
+              'Culture🕌': 'Культура', 'Travelling🏝': 'Путешествия', 'Life🏞': 'Из жизни',
+              'Sport🏆': 'Спорт', 'World🌎': 'Мир', 'Russia🇷🇺': 'Россия'}
+
 
 def start(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Hi Dear ✋ \nI'm News Bot 👨‍💻 \nI can show you all the latest news 📚\nWhat sphere are you interested in❓\nType <category> and choose one 📝")
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text="Hi Dear ✋ \nI'm News Bot 👨‍💻 \nI can show you all the latest news 📚\n"
+                                  "What sphere are you interested in❓\nType <category> and choose one 📝")
 
 
+def choose_category(update, context):
+    bot = context.bot
+    keyboard = [
+        [KeyboardButton("Science🎆")],
+        [KeyboardButton("Economy💰")],
+        [KeyboardButton("Internet📲")],
+        [KeyboardButton("Culture🕌")],
+        [KeyboardButton("Travelling🏝")],
+        [KeyboardButton("Life🏞")],
+        [KeyboardButton("Sport🏆")],
+        [KeyboardButton("World🌎")],
+        [KeyboardButton("Russia🇷🇺")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard,
+                                       one_time_keyboard=True,
+                                       resize_keyboard=True)
+    bot.send_message(update.message.chat_id, "Choose the category🔍",
+                     reply_markup=reply_markup)
+    return ADD_CATEGORY
 
-def show_categories(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Science🎆\nEconomy💰\nSport🏆\nInternet📲\nCulture🕌\nTravelling🏝\nLife🏞\nWorld🌎\nRussia🇷🇺")
+
+def add_category(update, context):
+    chat_data = context.chat_data
+    chat_data['category'] = update.message.text
+    context.bot.send_message(update.effective_chat.id,
+                             text='Type the keyword✏️')
+    return ADD_KEYWORD
 
 
-def chosen_category(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="ger")
-    return f
-
-
-PROCESS_DATA = 0
+def news_search(update, context):
+    global dictionary
+    chat_data = context.chat_data
+    keyword = update.message.text
+    category = dictionary[chat_data['category']]
+    article = news(category, keyword)
+    if article:
+        for i in article:
+            context.bot.send_message(chat_id=update.effective_chat.id,
+                                     text=f"{i}")
+    else:
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text="Sorry, I can't find appropriate news😔\nTry to enter another keyword🌸",)
 
 
 def cancel(update, context):
     return ConversationHandler.END
 
 
-def get_data_from_user(text):
-    def func(update, context):
-        bot = context.bot
-        bot.send_message(update.message.chat_id, f"{text}")
-        return PROCESS_DATA
-
-    return func
+start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
 
 
 choose_category_conversation = ConversationHandler(
     entry_points=[MessageHandler(Filters.regex("category"),
-                                 get_data_from_user)],
+                                 choose_category)],
     states={
-        PROCESS_DATA: [MessageHandler(Filters.regex("key word"), get_data_from_user)],
+        ADD_CATEGORY: [MessageHandler(Filters.text, add_category)],
+        ADD_KEYWORD: [MessageHandler(Filters.text, news_search)]
     },
     fallbacks=[MessageHandler(Filters.all, cancel)]
 )
 
-#
-# dispatcher.add_handler(ConversationHandler(entry_points=[MessageHandler(Filters.regex("category"), show_categories),get_data_from_user() ],
-#                                            states={
-#                                                PROCESS_DATA: [],
-#                                                s: [CallbackQueryHandler(second)]},
-#                                            ))
-
-
-
-start_handler = CommandHandler('start', start)
-dispatcher.add_handler(start_handler)
-
-dispatcher.add_handler(MessageHandler(Filters.regex("category"), show_categories))
-#
-# dispatcher.add_handler(MessageHandler(Filters.regex("Economy"), chosen_category))
-
 dispatcher.add_handler(choose_category_conversation)
-
-
 
 logging.info("start")
 updater.start_polling(poll_interval=1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
