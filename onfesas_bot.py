@@ -3,19 +3,15 @@ from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHa
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 from lenta_parser import news
 
-
 updater = Updater(token='1041164852:AAFrXEoznar1FRMxuELTtgHrY-Ltv6N_SBs', use_context=True)
 dispatcher = updater.dispatcher
-
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
-
 ADD_CATEGORY, ADD_KEYWORD = range(2)
 
-
-dictionary = {'Science🎆': 'Наука и техника', 'Economy💰': 'Экономика','Internet📲': 'Интернет и СМИ',
+dictionary = {'Science🎆': 'Наука и техника', 'Economy💰': 'Экономика', 'Internet📲': 'Интернет и СМИ',
               'Culture🕌': 'Культура', 'Travelling🏝': 'Путешествия', 'Life🏞': 'Из жизни',
               'Sport🏆': 'Спорт', 'World🌎': 'Мир', 'Russia🇷🇺': 'Россия'}
 
@@ -67,7 +63,7 @@ def news_search(update, context):
                                      text=f"{i}")
     else:
         context.bot.send_message(chat_id=update.effective_chat.id,
-                                 text="Sorry, I can't find appropriate news😔\nTry to enter another keyword🌸",)
+                                 text="Sorry, I can't find appropriate news😔\nTry to enter another keyword🌸", )
 
 
 def cancel(update, context):
@@ -77,13 +73,14 @@ def cancel(update, context):
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
 
-
 choose_category_conversation = ConversationHandler(
     entry_points=[MessageHandler(Filters.regex("category"),
                                  choose_category)],
     states={
         ADD_CATEGORY: [MessageHandler(Filters.text, add_category)],
-        ADD_KEYWORD: [MessageHandler(Filters.text, news_search)]
+        ADD_KEYWORD: [MessageHandler(Filters.text, news_search),
+                      MessageHandler(Filters.regex("category"),
+                                     choose_category)]
     },
     fallbacks=[MessageHandler(Filters.all, cancel)]
 )
@@ -92,19 +89,3 @@ dispatcher.add_handler(choose_category_conversation)
 
 logging.info("start")
 updater.start_polling(poll_interval=1)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
